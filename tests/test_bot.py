@@ -180,3 +180,8 @@ def test_memory_is_explicit_and_can_be_deleted(tmp_path) -> None:
     store = MemoryStore(str(tmp_path / "memory.sqlite3")); memory = store.add("Prefer concise answers")
     assert store.list() == [memory]
     store.delete(memory["id"]); assert store.list() == []
+
+
+def test_readiness_and_request_id_are_available() -> None:
+    client, _ = make_client(); response = client.get("/api/ready")
+    assert response.json() == {"status": "ready"} and response.headers["X-Request-ID"]

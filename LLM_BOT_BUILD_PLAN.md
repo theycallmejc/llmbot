@@ -997,7 +997,10 @@ Audit and fix high-impact security weaknesses.
 ---
 
 ## Phase 21 — Observability
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added request IDs, structured method/path/status/latency logging that excludes API keys and message contents, plus health and readiness endpoints. Readiness and request IDs are tested.
 
 ### Objective
 

@@ -15,6 +15,7 @@ from app.retrieval import LocalRetriever
 from app.tools import ToolError, execute
 from app.governance import RequestGuard
 from app.user_memory import MemoryStore
+from app.observability import request_log
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -51,6 +52,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     system_prompt = settings.system_prompt if settings.system_prompt != "You are a helpful, concise assistant." else prompt.text
     service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens), RequestGuard(settings.requests_per_minute, settings.requests_per_day))
     app = FastAPI(title="Chat Bot", version="1.0.0")
+    app.middleware("http")(request_log)
     attachments = AttachmentStore(settings.attachment_path)
     memories = MemoryStore(settings.database_path)
     retriever = LocalRetriever(settings.attachment_path)
@@ -65,6 +67,8 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+    @app.get("/api/ready")
+    async def ready() -> dict[str, str]: return {"status": "ready"}
 
     @app.post("/api/attachments")
     async def upload_attachment(file: UploadFile) -> dict[str, str]:
