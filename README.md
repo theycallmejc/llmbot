@@ -19,3 +19,7 @@ Each request receives a conversation ID. The server stores a bounded history in 
 ## Test
 
 Run `pytest`.
+
+## Docker
+
+From a clean checkout, set `OPENAI_API_KEY` in your shell and run `docker compose up --build`. The app is available only on `127.0.0.1:8000` and stores local data in the named `chatbot-data` volume. GitHub Actions runs the test suite for every push and pull request.

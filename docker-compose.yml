@@ -1,0 +1,10 @@
+services:
+  chatbot:
+    build: .
+    ports: ["127.0.0.1:8000:8000"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OPENAI_API_KEY in your shell}
+    volumes:
+      - chatbot-data:/app/data
+volumes:
+  chatbot-data:
