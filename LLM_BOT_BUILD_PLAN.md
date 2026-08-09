@@ -921,7 +921,14 @@ AI feeling comes from product behavior built on the Phase 4 system, not from add
 ---
 
 ## Phase 19 — Rate Limiting & Cost Controls
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added one enforced local guard around normal and streaming model calls with configurable per-minute and daily request budgets. Budget enforcement is tested and returns a clear safe error.
+
+### Known Limitations
+
+This local build uses request budgets rather than token-cost estimates because provider usage metadata varies across OpenAI-compatible endpoints.
 
 ### Objective
 

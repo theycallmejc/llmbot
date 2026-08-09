@@ -3,15 +3,20 @@
 from app.memory import ConversationStore, Message
 from app.context import ContextBuilder
 from app.provider import ChatProvider
+from app.governance import BudgetError, RequestGuard
+from app.errors import BudgetExceededError
 from collections.abc import AsyncIterator
 
 
 class BotService:
-    def __init__(self, provider: ChatProvider, store: ConversationStore, system_prompt: str, fallback_provider: ChatProvider | None = None, context_builder: ContextBuilder | None = None) -> None:
+    def __init__(self, provider: ChatProvider, store: ConversationStore, system_prompt: str, fallback_provider: ChatProvider | None = None, context_builder: ContextBuilder | None = None, guard: RequestGuard | None = None) -> None:
         self._provider, self._store, self._system_prompt, self._fallback_provider = provider, store, system_prompt, fallback_provider
         self._context_builder = context_builder or ContextBuilder(6000)
+        self._guard = guard or RequestGuard(10, 200)
 
     async def reply(self, conversation_id: str, user_message: str) -> str:
+        try: self._guard.check()
+        except BudgetError as error: raise BudgetExceededError() from error
         messages = self._context_builder.build(self._system_prompt, self._store.history(conversation_id), Message("user", user_message))
         try:
             reply = await self._provider.complete(messages)
@@ -22,6 +27,8 @@ class BotService:
         return reply
 
     async def stream_reply(self, conversation_id: str, user_message: str) -> AsyncIterator[str]:
+        try: self._guard.check()
+        except BudgetError as error: raise BudgetExceededError() from error
         messages = self._context_builder.build(self._system_prompt, self._store.history(conversation_id), Message("user", user_message))
         parts: list[str] = []
         async for chunk in self._provider.stream(messages):

@@ -18,3 +18,7 @@ class RateLimitError(BotError):
     code = "rate_limited"
     message = "The language-model provider is rate limiting requests."
 
+class BudgetExceededError(BotError):
+    status_code = 429
+    code = "budget_exceeded"
+    message = "The local model request budget has been reached."

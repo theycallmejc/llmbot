@@ -17,6 +17,8 @@ class Settings:
     domain_instructions: str | None = None
     max_context_tokens: int = 6000
     attachment_path: str = "data/attachments"
+    requests_per_minute: int = 10
+    requests_per_day: int = 200
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -36,4 +38,6 @@ class Settings:
             domain_instructions=os.getenv("BOT_DOMAIN_INSTRUCTIONS") or None,
             max_context_tokens=int(os.getenv("BOT_MAX_CONTEXT_TOKENS", "6000")),
             attachment_path=os.getenv("BOT_ATTACHMENT_PATH", "data/attachments"),
+            requests_per_minute=int(os.getenv("BOT_REQUESTS_PER_MINUTE", "10")),
+            requests_per_day=int(os.getenv("BOT_REQUESTS_PER_DAY", "200")),
         )

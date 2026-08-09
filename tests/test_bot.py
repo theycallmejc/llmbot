@@ -165,3 +165,11 @@ def test_calculator_tool_allows_math_not_code() -> None:
     try: execute("calculator", {"expression": "__import__('os')"})
     except ToolError: pass
     else: raise AssertionError("unsafe expression was accepted")
+
+
+def test_request_guard_enforces_daily_budget() -> None:
+    from app.governance import BudgetError, RequestGuard
+    guard = RequestGuard(10, 1); guard.check()
+    try: guard.check()
+    except BudgetError: pass
+    else: raise AssertionError("budget was not enforced")

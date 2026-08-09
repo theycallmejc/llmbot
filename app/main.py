@@ -13,6 +13,7 @@ from app.context import ContextBuilder
 from app.attachments import AttachmentError, AttachmentStore
 from app.retrieval import LocalRetriever
 from app.tools import ToolError, execute
+from app.governance import RequestGuard
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -45,7 +46,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     fallback = OpenAICompatibleProvider(settings.api_key, settings.fallback_model, settings.base_url, settings.timeout_seconds) if settings.fallback_model else None
     prompt = assemble(domain_instructions=settings.domain_instructions)
     system_prompt = settings.system_prompt if settings.system_prompt != "You are a helpful, concise assistant." else prompt.text
-    service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens))
+    service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens), RequestGuard(settings.requests_per_minute, settings.requests_per_day))
     app = FastAPI(title="Chat Bot", version="1.0.0")
     attachments = AttachmentStore(settings.attachment_path)
     retriever = LocalRetriever(settings.attachment_path)
