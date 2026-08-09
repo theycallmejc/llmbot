@@ -211,7 +211,10 @@ Route
 ---
 
 ## Phase 3 — Architecture Decision: Stack, Identity, Storage, Deployment Target
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Chose the existing vanilla browser client, single-user local operation, SQLite persistence with local vector storage later if needed, and local-machine deployment. The justifications are recorded in `docs/architecture/LLM_BOT_ARCHITECTURE.md`.
 
 ### Objective
 
