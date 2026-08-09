@@ -10,5 +10,9 @@ if not logger.handlers:
 async def request_log(request: Request, call_next):
     request_id = str(uuid4()); start = time.perf_counter()
     response = await call_next(request); response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'"
     logger.info(json.dumps({"event":"request", "request_id":request_id, "method":request.method, "path":request.url.path, "status":response.status_code, "latency_ms":round((time.perf_counter()-start)*1000)}))
     return response

@@ -192,3 +192,9 @@ def test_evaluation_cases_are_valid_json() -> None:
     from pathlib import Path
     cases = json.loads((Path(__file__).parents[1] / "evals" / "cases.json").read_text())
     assert {case["name"] for case in cases} == {"empty_message_rejected", "calculator_safe_math"}
+
+
+def test_security_headers_prevent_framing_and_sniffing() -> None:
+    client, _ = make_client(); response = client.get("/")
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"

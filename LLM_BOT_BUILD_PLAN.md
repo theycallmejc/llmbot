@@ -963,7 +963,14 @@ Treat LLM spend as a first-class production risk, not scattered checklist bullet
 ---
 
 ## Phase 20 — Security Hardening
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added local HTTP security headers, preserved same-origin-only browser access, documented the security posture, and covered header/tool/output protections with regression tests.
+
+### Known Limitations
+
+This is intentionally a local single-user application. Internet-facing deployment requires authentication, authorization, and a new security review.
 
 ### Objective
 
