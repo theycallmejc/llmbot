@@ -1,0 +1,4 @@
+[
+  {"name":"empty_message_rejected","input":"   ","expected_status":422},
+  {"name":"calculator_safe_math","expression":"3 * 7","expected_result":21}
+]

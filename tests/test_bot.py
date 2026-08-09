@@ -185,3 +185,10 @@ def test_memory_is_explicit_and_can_be_deleted(tmp_path) -> None:
 def test_readiness_and_request_id_are_available() -> None:
     client, _ = make_client(); response = client.get("/api/ready")
     assert response.json() == {"status": "ready"} and response.headers["X-Request-ID"]
+
+
+def test_evaluation_cases_are_valid_json() -> None:
+    import json
+    from pathlib import Path
+    cases = json.loads((Path(__file__).parents[1] / "evals" / "cases.json").read_text())
+    assert {case["name"] for case in cases} == {"empty_message_rejected", "calculator_safe_math"}
