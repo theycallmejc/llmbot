@@ -1,0 +1,2 @@
+"""Standalone chat bot package."""
+

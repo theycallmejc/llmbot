@@ -1,12 +1,6 @@
-.DS_Store
-.idea
-.ipynb_checkpoints/
-.vscode
+.env
+.venv/
 __pycache__/
-*.bin
-*.pkl
-*.pt
-*.pyc
-input.txt
-env/
-venv/
+.pytest_cache/
+*.py[cod]
+
