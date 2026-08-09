@@ -143,3 +143,11 @@ def test_stream_endpoint_sends_chunks_and_persists_reply() -> None:
     response = client.post("/api/chat/stream", json={"message": "Hi"})
     assert response.status_code == 200 and '"text": "Hello"' in response.text
     assert [message.content for message in store.history(response.text.split('conversation_id": "')[1].split('"')[0])] == ["Hi", "Hello world"]
+
+
+def test_text_attachment_is_saved_and_extracted(tmp_path) -> None:
+    from app.attachments import AttachmentStore
+    from starlette.datastructures import UploadFile
+    import io
+    result = asyncio.run(AttachmentStore(str(tmp_path)).save(UploadFile(io.BytesIO(b"hello"), filename="notes.txt")))
+    assert result["name"] == "notes.txt" and result["content"] == "hello"

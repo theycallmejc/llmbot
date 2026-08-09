@@ -616,7 +616,14 @@ Do not send entire histories indefinitely.
 ---
 
 ## Phase 12 — File Attachments
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added local text-file uploads with allowlisted extensions, filename normalization, 1 MB size limits, UTF-8 extraction, and safe server-side storage. Extraction behavior is tested.
+
+### Known Limitations
+
+PDF extraction is intentionally not enabled; only the allowlisted text formats are accepted.
 
 ### Objective
 

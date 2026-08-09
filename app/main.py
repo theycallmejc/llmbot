@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import json
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.config import Settings
 from app.context import ContextBuilder
+from app.attachments import AttachmentError, AttachmentStore
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -40,6 +41,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     system_prompt = settings.system_prompt if settings.system_prompt != "You are a helpful, concise assistant." else prompt.text
     service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens))
     app = FastAPI(title="Chat Bot", version="1.0.0")
+    attachments = AttachmentStore(settings.attachment_path)
 
     @app.exception_handler(BotError)
     async def bot_error(_: Request, error: BotError) -> JSONResponse:
@@ -51,6 +53,11 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/api/attachments")
+    async def upload_attachment(file: UploadFile) -> dict[str, str]:
+        try: return await attachments.save(file)
+        except AttachmentError as error: raise HTTPException(422, str(error)) from error
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:
