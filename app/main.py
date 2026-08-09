@@ -32,7 +32,10 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
 
     @app.exception_handler(BotError)
     async def bot_error(_: Request, error: BotError) -> JSONResponse:
-        return JSONResponse(error.status_code, {"error": {"code": error.code, "message": error.message}})
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"error": {"code": error.code, "message": error.message}},
+        )
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:
@@ -58,4 +61,3 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
 
 
 app = create_app()
-

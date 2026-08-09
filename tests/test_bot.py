@@ -4,6 +4,7 @@ import httpx
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.errors import BotError
 from app.memory import ConversationStore, Message
 from app.provider import OpenAICompatibleProvider
 from app.service import BotService
@@ -62,3 +63,17 @@ def test_openai_compatible_provider_returns_model_content() -> None:
     response = asyncio.run(provider.complete([Message("user", "Hello")]))
 
     assert response == "Provider reply"
+
+
+def test_provider_error_is_a_json_api_error() -> None:
+    class FailingProvider:
+        async def complete(self, _: list[Message]) -> str:
+            raise BotError()
+
+    settings = Settings(None, "test-model", "https://example.test/v1", "Be helpful", 1, 4)
+    client = TestClient(create_app(BotService(FailingProvider(), ConversationStore(4), settings.system_prompt), settings))
+
+    response = client.post("/api/chat", json={"message": "Hello"})
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "provider_error"
