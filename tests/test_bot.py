@@ -207,3 +207,10 @@ def test_local_agent_is_bounded_to_calculator() -> None:
     try: LocalAgent(RequestGuard(10, 10)).run("delete files")
     except AgentError: pass
     else: raise AssertionError("agent accepted unsupported goal")
+
+
+def test_configured_search_returns_source_metadata() -> None:
+    from app.search import ConfiguredSearch
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={"results":[{"title":"Example","url":"https://example.test","snippet":"Result"}]}))
+    result = asyncio.run(ConfiguredSearch("https://search.test", transport=transport).search("test"))
+    assert result == [{"title":"Example", "url":"https://example.test", "snippet":"Result"}]

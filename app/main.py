@@ -17,6 +17,7 @@ from app.governance import RequestGuard
 from app.user_memory import MemoryStore
 from app.observability import request_log
 from app.agent import AgentError, LocalAgent
+from app.search import ConfiguredSearch, SearchError
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -59,6 +60,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     attachments = AttachmentStore(settings.attachment_path)
     memories = MemoryStore(settings.database_path)
     agent = LocalAgent(RequestGuard(settings.requests_per_minute, settings.requests_per_day))
+    search = ConfiguredSearch(settings.search_url)
     retriever = LocalRetriever(settings.attachment_path)
 
     @app.exception_handler(BotError)
@@ -100,6 +102,10 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     async def run_agent(request: AgentRequest) -> dict[str, object]:
         try: return agent.run(request.goal)
         except AgentError as error: raise HTTPException(422, str(error)) from error
+    @app.get("/api/search")
+    async def web_search(query: str = Query(min_length=2, max_length=300)) -> dict[str, object]:
+        try: return {"sources": await search.search(query)}
+        except SearchError as error: raise HTTPException(503, str(error)) from error
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:

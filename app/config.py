@@ -19,6 +19,7 @@ class Settings:
     attachment_path: str = "data/attachments"
     requests_per_minute: int = 10
     requests_per_day: int = 200
+    search_url: str | None = None
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -40,4 +41,5 @@ class Settings:
             attachment_path=os.getenv("BOT_ATTACHMENT_PATH", "data/attachments"),
             requests_per_minute=int(os.getenv("BOT_REQUESTS_PER_MINUTE", "10")),
             requests_per_day=int(os.getenv("BOT_REQUESTS_PER_DAY", "200")),
+            search_url=os.getenv("BOT_SEARCH_URL") or None,
         )
