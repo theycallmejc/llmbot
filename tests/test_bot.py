@@ -198,3 +198,12 @@ def test_security_headers_prevent_framing_and_sniffing() -> None:
     client, _ = make_client(); response = client.get("/")
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_local_agent_is_bounded_to_calculator() -> None:
+    from app.agent import LocalAgent, AgentError
+    from app.governance import RequestGuard
+    assert LocalAgent(RequestGuard(10, 10)).run("calculate: 5 + 6")["result"] == 11
+    try: LocalAgent(RequestGuard(10, 10)).run("delete files")
+    except AgentError: pass
+    else: raise AssertionError("agent accepted unsupported goal")
