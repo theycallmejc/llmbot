@@ -21,3 +21,8 @@ class AttachmentStore:
         except UnicodeDecodeError as error: raise AttachmentError("The file must be UTF-8 text.") from error
         attachment_id = str(uuid4()); (self.root / f"{attachment_id}{suffix}").write_text(text, encoding="utf-8")
         return {"id": attachment_id, "name": name, "content": text}
+
+    def read(self, attachment_id: str) -> str:
+        matches = list(self.root.glob(f"{attachment_id}.*"))
+        if len(matches) != 1: raise AttachmentError("Attachment not found.")
+        return matches[0].read_text(encoding="utf-8")

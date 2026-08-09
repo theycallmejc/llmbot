@@ -151,6 +151,7 @@ def test_text_attachment_is_saved_and_extracted(tmp_path) -> None:
     import io
     result = asyncio.run(AttachmentStore(str(tmp_path)).save(UploadFile(io.BytesIO(b"hello"), filename="notes.txt")))
     assert result["name"] == "notes.txt" and result["content"] == "hello"
+    assert AttachmentStore(str(tmp_path)).read(result["id"]) == "hello"
 
 
 def test_local_retrieval_returns_matching_source(tmp_path) -> None:

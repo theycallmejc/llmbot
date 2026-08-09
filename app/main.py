@@ -28,6 +28,7 @@ from app.service import BotService
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12_000)
     conversation_id: str | None = Field(default=None, max_length=100)
+    attachment_ids: list[str] = Field(default_factory=list, max_length=3)
 
 
 class ChatResponse(BaseModel):
@@ -113,7 +114,9 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
         if not message:
             raise HTTPException(422, "message must not be blank")
         conversation_id = request.conversation_id or str(uuid4())
-        return ChatResponse(message=await service.reply(conversation_id, message), conversation_id=conversation_id, model=settings.model)
+        try: attached = "\n\n".join(attachments.read(item) for item in request.attachment_ids)
+        except AttachmentError as error: raise HTTPException(422, str(error)) from error
+        return ChatResponse(message=await service.reply(conversation_id, message, attached), conversation_id=conversation_id, model=settings.model)
 
     @app.post("/api/chat/stream")
     async def stream_chat(request: ChatRequest) -> StreamingResponse:

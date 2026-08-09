@@ -14,10 +14,11 @@ class BotService:
         self._context_builder = context_builder or ContextBuilder(6000)
         self._guard = guard or RequestGuard(10, 200)
 
-    async def reply(self, conversation_id: str, user_message: str) -> str:
+    async def reply(self, conversation_id: str, user_message: str, attachment_text: str = "") -> str:
         try: self._guard.check()
         except BudgetError as error: raise BudgetExceededError() from error
-        messages = self._context_builder.build(self._system_prompt, self._store.history(conversation_id), Message("user", user_message))
+        prompt = user_message if not attachment_text else f"{user_message}\n\nAttached file content:\n{attachment_text}"
+        messages = self._context_builder.build(self._system_prompt, self._store.history(conversation_id), Message("user", prompt))
         try:
             reply = await self._provider.complete(messages)
         except Exception:
