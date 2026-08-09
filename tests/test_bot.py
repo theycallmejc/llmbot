@@ -173,3 +173,10 @@ def test_request_guard_enforces_daily_budget() -> None:
     try: guard.check()
     except BudgetError: pass
     else: raise AssertionError("budget was not enforced")
+
+
+def test_memory_is_explicit_and_can_be_deleted(tmp_path) -> None:
+    from app.user_memory import MemoryStore
+    store = MemoryStore(str(tmp_path / "memory.sqlite3")); memory = store.add("Prefer concise answers")
+    assert store.list() == [memory]
+    store.delete(memory["id"]); assert store.list() == []

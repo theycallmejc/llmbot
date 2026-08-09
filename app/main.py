@@ -14,6 +14,7 @@ from app.attachments import AttachmentError, AttachmentStore
 from app.retrieval import LocalRetriever
 from app.tools import ToolError, execute
 from app.governance import RequestGuard
+from app.user_memory import MemoryStore
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -38,6 +39,8 @@ class RenameRequest(BaseModel):
 class ToolRequest(BaseModel):
     name: str = Field(max_length=50)
     arguments: dict[str, str]
+class MemoryRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=500)
 
 
 def create_app(service: BotService | None = None, settings: Settings | None = None) -> FastAPI:
@@ -49,6 +52,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens), RequestGuard(settings.requests_per_minute, settings.requests_per_day))
     app = FastAPI(title="Chat Bot", version="1.0.0")
     attachments = AttachmentStore(settings.attachment_path)
+    memories = MemoryStore(settings.database_path)
     retriever = LocalRetriever(settings.attachment_path)
 
     @app.exception_handler(BotError)
@@ -75,6 +79,14 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     async def run_tool(request: ToolRequest) -> dict[str, object]:
         try: return execute(request.name, request.arguments)
         except ToolError as error: raise HTTPException(422, str(error)) from error
+
+    @app.get("/api/memory")
+    async def list_memory() -> list[dict[str, str]]: return memories.list()
+    @app.post("/api/memory")
+    async def add_memory(request: MemoryRequest) -> dict[str, str]: return memories.add(request.content.strip())
+    @app.delete("/api/memory/{memory_id}", status_code=204)
+    async def delete_memory(memory_id: str) -> Response:
+        memories.delete(memory_id); return Response(status_code=204)
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:

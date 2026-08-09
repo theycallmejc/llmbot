@@ -801,7 +801,14 @@ Clearly distinguish retrieved information from model-generated knowledge.
 ---
 
 ## Phase 16 — User Memory
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added explicit local memory CRUD APIs backed by SQLite. Memory is never auto-extracted from messages and can be listed or deleted; behavior is tested.
+
+### Known Limitations
+
+Memory injection into model context remains opt-in and is not automatically applied, to avoid sending personal preferences unnecessarily.
 
 ### Objective
 
