@@ -4,9 +4,11 @@ import httpx
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.context import ContextBuilder
 from app.errors import BotError
 from app.memory import ConversationStore, Message
 from app.provider import OpenAICompatibleProvider
+from app.prompts import assemble
 from app.service import BotService
 from app.main import create_app
 
@@ -77,3 +79,54 @@ def test_provider_error_is_a_json_api_error() -> None:
 
     assert response.status_code == 502
     assert response.json()["error"]["code"] == "provider_error"
+
+
+def test_sqlite_conversation_survives_store_restart(tmp_path) -> None:
+    database = tmp_path / "chat.sqlite3"
+    first = ConversationStore(8, str(database))
+    first.add_turn("chat-1", "How are you?", "I am well.", "test-model")
+    second = ConversationStore(8, str(database))
+
+    assert second.list()[0]["title"] == "How are you?"
+    assert [item.content for item in second.history("chat-1")] == ["How are you?", "I am well."]
+
+
+def test_store_retains_branch_history_without_showing_inactive_branch(tmp_path) -> None:
+    store = ConversationStore(8, str(tmp_path / "chat.sqlite3"))
+    store.add_turn("chat-1", "Original", "First answer")
+    original = store._db.execute("SELECT id FROM messages WHERE content = 'Original'").fetchone()["id"]
+    store.add_branch("chat-1", original, "Edited", "Second answer")
+
+    active = [message.content for message in store.history("chat-1")]
+    count = store._db.execute("SELECT COUNT(*) FROM messages WHERE conversation_id = 'chat-1'").fetchone()[0]
+    assert active == ["Original", "Edited", "Second answer"]
+    assert count == 4
+
+
+def test_manual_title_is_not_replaced_by_later_messages(tmp_path) -> None:
+    store = ConversationStore(8, str(tmp_path / "chat.sqlite3"))
+    store.add_turn("chat-1", "A long first message about planning", "Answer")
+    assert store.rename("chat-1", "My plan")
+    store.add_turn("chat-1", "Another message", "Answer")
+    assert store.get("chat-1")["title"] == "My plan"
+
+
+def test_fallback_provider_handles_primary_failure() -> None:
+    class BrokenProvider:
+        async def complete(self, _: list[Message]) -> str: raise RuntimeError("offline")
+    class BackupProvider:
+        async def complete(self, _: list[Message]) -> str: return "Fallback answer"
+    service = BotService(BrokenProvider(), ConversationStore(4), "Be helpful", BackupProvider())
+    assert asyncio.run(service.reply("chat", "Hello")) == "Fallback answer"
+
+
+def test_prompt_assembly_is_versioned_and_adds_domain_instructions() -> None:
+    prompt = assemble(domain_instructions="Use simple language.")
+    assert prompt.name == "local-chat" and prompt.version == "v1"
+    assert "Use simple language." in prompt.text
+
+
+def test_context_builder_keeps_latest_request_within_budget() -> None:
+    builder = ContextBuilder(12)
+    result = builder.build("System", [Message("user", "old " * 20), Message("assistant", "recent")], Message("user", "latest"))
+    assert [message.content for message in result] == ["System", "recent", "latest"]

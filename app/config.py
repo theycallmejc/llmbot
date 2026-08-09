@@ -12,6 +12,10 @@ class Settings:
     system_prompt: str
     timeout_seconds: float
     max_history_messages: int
+    database_path: str = "data/chatbot.sqlite3"
+    fallback_model: str | None = None
+    domain_instructions: str | None = None
+    max_context_tokens: int = 6000
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -26,5 +30,8 @@ class Settings:
             system_prompt=os.getenv("BOT_SYSTEM_PROMPT", "You are a helpful, concise assistant."),
             timeout_seconds=timeout,
             max_history_messages=history_limit,
+            database_path=os.getenv("BOT_DATABASE_PATH", "data/chatbot.sqlite3"),
+            fallback_model=os.getenv("BOT_FALLBACK_MODEL") or None,
+            domain_instructions=os.getenv("BOT_DOMAIN_INSTRUCTIONS") or None,
+            max_context_tokens=int(os.getenv("BOT_MAX_CONTEXT_TOKENS", "6000")),
         )
-

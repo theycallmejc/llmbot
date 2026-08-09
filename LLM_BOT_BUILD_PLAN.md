@@ -305,7 +305,14 @@ A short design reference (e.g., `docs/design/AI_NATIVE_DESIGN_SYSTEM.md`) coveri
 ---
 
 ## Phase 5 — Chat UI
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Implemented the responsive local chat UI with sidebar, empty state, keyboard-first composer, loading/error states, safe basic Markdown and code rendering, and response copying.
+
+### Known Limitations
+
+Markdown supports headings, bold text, inline code, and fenced code blocks only; it intentionally does not render raw HTML or links until a vetted sanitizer is introduced.
 
 ### Objective
 
@@ -403,7 +410,10 @@ Do not simulate typing with artificial delays.
 ---
 
 ## Phase 7 — Conversation Persistence
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Replaced volatile conversation storage with SQLite, added conversation list/load/rename/delete endpoints and sidebar, and introduced parent-linked messages with an active-branch marker. Persistence and branch selection have automated tests.
 
 ### Objective
 
@@ -458,7 +468,14 @@ Message should include:
 ---
 
 ## Phase 8 — Automatic Conversation Titles
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: New conversations receive a concise deterministic title from the first user message without an extra model call. Manual titles are retained and tested as authoritative.
+
+### Known Limitations
+
+Titles are local heuristic summaries rather than LLM-generated titles, avoiding a second request and cost for the local tool.
 
 ### Objective
 
@@ -482,7 +499,10 @@ Generate concise useful conversation titles.
 ---
 
 ## Phase 9 — Model and Provider Abstraction
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Kept the provider protocol independent of the chat service and added an optional `BOT_FALLBACK_MODEL` path using the same OpenAI-compatible endpoint. Fallback selection is covered by a mocked test.
 
 ### Objective
 
@@ -517,7 +537,10 @@ generate_structured()
 ---
 
 ## Phase 10 — Prompt Management
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added a versioned prompt registry and prompt assembly with optional backend-only domain instructions. Prompt construction is unit tested.
 
 ### Objective
 
@@ -545,7 +568,14 @@ Do not expose hidden system prompts to the frontend.
 ---
 
 ## Phase 11 — Context Window Management
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added deterministic token estimation and a context builder that prioritizes the newest request and the most recent fitting history within `BOT_MAX_CONTEXT_TOKENS`. Context selection is unit tested.
+
+### Known Limitations
+
+Older messages are omitted when they do not fit; model-generated conversation summaries are deferred to avoid hidden background model calls and cost.
 
 ### Objective
 

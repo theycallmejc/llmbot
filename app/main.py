@@ -8,9 +8,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.config import Settings
+from app.context import ContextBuilder
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
+from app.prompts import assemble
 from app.service import BotService
 
 
@@ -25,9 +27,17 @@ class ChatResponse(BaseModel):
     model: str
 
 
+class RenameRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+
+
 def create_app(service: BotService | None = None, settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_environment()
-    service = service or BotService(OpenAICompatibleProvider(settings.api_key, settings.model, settings.base_url, settings.timeout_seconds), ConversationStore(settings.max_history_messages), settings.system_prompt)
+    primary = OpenAICompatibleProvider(settings.api_key, settings.model, settings.base_url, settings.timeout_seconds)
+    fallback = OpenAICompatibleProvider(settings.api_key, settings.fallback_model, settings.base_url, settings.timeout_seconds) if settings.fallback_model else None
+    prompt = assemble(domain_instructions=settings.domain_instructions)
+    system_prompt = settings.system_prompt if settings.system_prompt != "You are a helpful, concise assistant." else prompt.text
+    service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens))
     app = FastAPI(title="Chat Bot", version="1.0.0")
 
     @app.exception_handler(BotError)
@@ -52,6 +62,21 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     @app.delete("/api/conversations/{conversation_id}", status_code=204)
     async def clear_conversation(conversation_id: str) -> Response:
         service.clear(conversation_id)
+        return Response(status_code=204)
+
+    @app.get("/api/conversations")
+    async def conversations() -> list[dict[str, str]]:
+        return service.list_conversations()
+
+    @app.get("/api/conversations/{conversation_id}")
+    async def conversation(conversation_id: str) -> dict[str, object]:
+        result = service.get_conversation(conversation_id)
+        if not result: raise HTTPException(404, "conversation not found")
+        return result
+
+    @app.patch("/api/conversations/{conversation_id}")
+    async def rename_conversation(conversation_id: str, request: RenameRequest) -> Response:
+        if not service.rename(conversation_id, request.title.strip()): raise HTTPException(404, "conversation not found")
         return Response(status_code=204)
 
     static_dir = Path(__file__).parent / "static"
