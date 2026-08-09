@@ -374,7 +374,14 @@ Avoid:
 ---
 
 ## Phase 6 — Streaming Responses
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added provider and API streaming using Server-Sent Events; the browser renders genuine chunks as they arrive and saves the completed reply. Streaming behavior is tested with a mocked provider.
+
+### Known Limitations
+
+Stop Generation aborts the browser request and preserves visible partial text. Provider-side cancellation depends on the configured OpenAI-compatible server honoring client disconnects.
 
 ### Objective
 

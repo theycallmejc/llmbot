@@ -3,7 +3,8 @@
 from pathlib import Path
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+import json
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -58,6 +59,20 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
             raise HTTPException(422, "message must not be blank")
         conversation_id = request.conversation_id or str(uuid4())
         return ChatResponse(message=await service.reply(conversation_id, message), conversation_id=conversation_id, model=settings.model)
+
+    @app.post("/api/chat/stream")
+    async def stream_chat(request: ChatRequest) -> StreamingResponse:
+        message = request.message.strip()
+        if not message: raise HTTPException(422, "message must not be blank")
+        conversation_id = request.conversation_id or str(uuid4())
+        async def events():
+            try:
+                async for chunk in service.stream_reply(conversation_id, message):
+                    yield f"event: chunk\ndata: {json.dumps({'text': chunk})}\n\n"
+                yield f"event: done\ndata: {json.dumps({'conversation_id': conversation_id, 'model': settings.model})}\n\n"
+            except BotError as error:
+                yield f"event: error\ndata: {json.dumps({'message': error.message})}\n\n"
+        return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     @app.delete("/api/conversations/{conversation_id}", status_code=204)
     async def clear_conversation(conversation_id: str) -> Response:

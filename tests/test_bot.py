@@ -130,3 +130,16 @@ def test_context_builder_keeps_latest_request_within_budget() -> None:
     builder = ContextBuilder(12)
     result = builder.build("System", [Message("user", "old " * 20), Message("assistant", "recent")], Message("user", "latest"))
     assert [message.content for message in result] == ["System", "recent", "latest"]
+
+
+def test_stream_endpoint_sends_chunks_and_persists_reply() -> None:
+    class StreamingProvider:
+        async def complete(self, _: list[Message]) -> str: return "unused"
+        async def stream(self, _: list[Message]):
+            yield "Hello"; yield " world"
+    settings = Settings(None, "test", "https://example.test", "System", 1, 4)
+    store = ConversationStore(4)
+    client = TestClient(create_app(BotService(StreamingProvider(), store, "System"), settings))
+    response = client.post("/api/chat/stream", json={"message": "Hi"})
+    assert response.status_code == 200 and '"text": "Hello"' in response.text
+    assert [message.content for message in store.history(response.text.split('conversation_id": "')[1].split('"')[0])] == ["Hi", "Hello world"]

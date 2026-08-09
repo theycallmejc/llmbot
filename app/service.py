@@ -3,6 +3,7 @@
 from app.memory import ConversationStore, Message
 from app.context import ContextBuilder
 from app.provider import ChatProvider
+from collections.abc import AsyncIterator
 
 
 class BotService:
@@ -19,6 +20,14 @@ class BotService:
             reply = await self._fallback_provider.complete(messages)
         self._store.add_turn(conversation_id, user_message, reply)
         return reply
+
+    async def stream_reply(self, conversation_id: str, user_message: str) -> AsyncIterator[str]:
+        messages = self._context_builder.build(self._system_prompt, self._store.history(conversation_id), Message("user", user_message))
+        parts: list[str] = []
+        async for chunk in self._provider.stream(messages):
+            parts.append(chunk); yield chunk
+        reply = "".join(parts).strip()
+        if reply: self._store.add_turn(conversation_id, user_message, reply)
 
     def clear(self, conversation_id: str) -> None:
         self._store.clear(conversation_id)

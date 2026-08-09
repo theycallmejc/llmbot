@@ -5,6 +5,7 @@ const emptyState = document.querySelector('#empty-state');
 const sendButton = document.querySelector('#send-button');
 const status = document.querySelector('#connection-status');
 let conversationId = null;
+let activeRequest = null;
 
 async function refreshConversations() {
   const response = await fetch('/api/conversations');
@@ -103,31 +104,44 @@ function resizeComposer() {
 }
 
 async function sendMessage() {
+  if (activeRequest) { activeRequest.abort(); return; }
   const message = input.value.trim();
   if (!message || sendButton.disabled) return;
   appendMessage('user', message);
   input.value = '';
   resizeComposer();
   sendButton.disabled = true;
+  sendButton.disabled = false; sendButton.textContent = 'Stop';
+  activeRequest = new AbortController();
   setStatus('Replying…', true);
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, conversation_id: conversationId }),
+      body: JSON.stringify({ message, conversation_id: conversationId }), signal: activeRequest.signal,
     });
-    const body = await responseBody(response);
-    if (!response.ok) throw new Error(body.error?.message || 'The request could not be completed.');
-    conversationId = body.conversation_id;
-    appendMessage('assistant', body.message);
+    if (!response.ok) { const body = await responseBody(response); throw new Error(body.error?.message || 'The request could not be completed.'); }
+    const assistant = appendMessage('assistant', ''); const content = assistant.querySelector('.message-content');
+    const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let text = '';
+    while (true) {
+      const { value, done } = await reader.read(); if (done) break;
+      buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop();
+      for (const event of events) {
+        const type = event.match(/event: (.+)/)?.[1]; const data = event.match(/data: (.+)/)?.[1]; if (!data) continue;
+        const payload = JSON.parse(data); if (type === 'chunk') { text += payload.text; renderMarkdown(content, text); }
+        if (type === 'done') conversationId = payload.conversation_id;
+        if (type === 'error') throw new Error(payload.message);
+      }
+    }
     document.querySelector('h1').textContent = message.split(/\s+/).slice(0, 8).join(' ') || 'New conversation';
     refreshConversations();
     setStatus('Ready');
   } catch (error) {
+    if (error.name === 'AbortError') { setStatus('Generation stopped'); return; }
     appendMessage('error', `${error.message} Try again when you are ready.`);
     setStatus('Could not reply');
   } finally {
-    sendButton.disabled = false;
+    activeRequest = null; sendButton.disabled = false; sendButton.innerHTML = 'Send <span aria-hidden="true">↵</span>';
     input.focus();
   }
 }
