@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
+from fastapi import FastAPI, HTTPException, Request, Response, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import json
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.config import Settings
 from app.context import ContextBuilder
 from app.attachments import AttachmentError, AttachmentStore
+from app.retrieval import LocalRetriever
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -42,6 +43,7 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     service = service or BotService(primary, ConversationStore(settings.max_history_messages, settings.database_path), system_prompt, fallback, ContextBuilder(settings.max_context_tokens))
     app = FastAPI(title="Chat Bot", version="1.0.0")
     attachments = AttachmentStore(settings.attachment_path)
+    retriever = LocalRetriever(settings.attachment_path)
 
     @app.exception_handler(BotError)
     async def bot_error(_: Request, error: BotError) -> JSONResponse:
@@ -58,6 +60,10 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     async def upload_attachment(file: UploadFile) -> dict[str, str]:
         try: return await attachments.save(file)
         except AttachmentError as error: raise HTTPException(422, str(error)) from error
+
+    @app.get("/api/retrieval")
+    async def retrieve(query: str = Query(min_length=2, max_length=500)) -> dict[str, object]:
+        return {"sources": retriever.search(query)}
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:

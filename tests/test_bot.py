@@ -151,3 +151,9 @@ def test_text_attachment_is_saved_and_extracted(tmp_path) -> None:
     import io
     result = asyncio.run(AttachmentStore(str(tmp_path)).save(UploadFile(io.BytesIO(b"hello"), filename="notes.txt")))
     assert result["name"] == "notes.txt" and result["content"] == "hello"
+
+
+def test_local_retrieval_returns_matching_source(tmp_path) -> None:
+    from app.retrieval import LocalRetriever
+    (tmp_path / "document.txt").write_text("FastAPI makes web APIs easy", encoding="utf-8")
+    assert LocalRetriever(str(tmp_path)).search("FastAPI API")[0]["document_id"] == "document"

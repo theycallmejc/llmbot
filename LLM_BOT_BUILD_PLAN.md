@@ -667,7 +667,14 @@ Add PDF only if safe extraction is supported by the current architecture.
 ---
 
 ## Phase 13 — Retrieval-Augmented Generation
-- [ ] Complete
+- [x] Complete
+
+Completed: 2026-08-09
+Summary: Added a local document retriever that chunks uploaded text by line, ranks matching chunks locally, and returns explicit document and line source metadata. Retrieval is unit tested.
+
+### Known Limitations
+
+The local single-user implementation uses lexical matching rather than remote embeddings; retrieval is transparent and requires no additional provider or vector service.
 
 ### Objective
 
