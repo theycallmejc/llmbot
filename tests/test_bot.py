@@ -157,3 +157,11 @@ def test_local_retrieval_returns_matching_source(tmp_path) -> None:
     from app.retrieval import LocalRetriever
     (tmp_path / "document.txt").write_text("FastAPI makes web APIs easy", encoding="utf-8")
     assert LocalRetriever(str(tmp_path)).search("FastAPI API")[0]["document_id"] == "document"
+
+
+def test_calculator_tool_allows_math_not_code() -> None:
+    from app.tools import ToolError, execute
+    assert execute("calculator", {"expression": "2 * (3 + 4)"})["result"] == 14
+    try: execute("calculator", {"expression": "__import__('os')"})
+    except ToolError: pass
+    else: raise AssertionError("unsafe expression was accepted")

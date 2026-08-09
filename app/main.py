@@ -12,6 +12,7 @@ from app.config import Settings
 from app.context import ContextBuilder
 from app.attachments import AttachmentError, AttachmentStore
 from app.retrieval import LocalRetriever
+from app.tools import ToolError, execute
 from app.errors import BotError
 from app.memory import ConversationStore
 from app.provider import OpenAICompatibleProvider
@@ -32,6 +33,10 @@ class ChatResponse(BaseModel):
 
 class RenameRequest(BaseModel):
     title: str = Field(min_length=1, max_length=100)
+
+class ToolRequest(BaseModel):
+    name: str = Field(max_length=50)
+    arguments: dict[str, str]
 
 
 def create_app(service: BotService | None = None, settings: Settings | None = None) -> FastAPI:
@@ -64,6 +69,11 @@ def create_app(service: BotService | None = None, settings: Settings | None = No
     @app.get("/api/retrieval")
     async def retrieve(query: str = Query(min_length=2, max_length=500)) -> dict[str, object]:
         return {"sources": retriever.search(query)}
+
+    @app.post("/api/tools")
+    async def run_tool(request: ToolRequest) -> dict[str, object]:
+        try: return execute(request.name, request.arguments)
+        except ToolError as error: raise HTTPException(422, str(error)) from error
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:
